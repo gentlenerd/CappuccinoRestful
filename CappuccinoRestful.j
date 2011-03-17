@@ -130,11 +130,12 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
     return [[self className] railsifiedString];
 }
 
-- (JSObject)attributes
+/* Should no longer be needed to be  declared in the derived class*/
+/*- (JSObject)attributes
 {
     CPLog.warn('This method must be declared in your class to save properly.');
     return {};
-}
+}*/
 
 /*
 	Steps up the inhertitance tree recursivlely until CappuccinoRestful and adds up all iVars.
