@@ -122,7 +122,7 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
 
 + (CPURL)resourcePath
 {
-    return [CPURL URLWithString:@"/" + [self railsName] + @"s"];
+    return [CPURL URLWithString:@"../" + [self railsName] + @"s"];
 }
 
 + (CPString)railsName
@@ -136,14 +136,56 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
     return {};
 }
 
+/*
+	Steps up the inhertitance tree recursivlely until CappuccinoRestful and adds up all iVars.
+*/
++ (CPArray)iVarList
+{
+	iVars = [CPArray array];
+	if([self className] != "CappuccinoRestful")
+	{
+		iVars = [[self superclass] iVarList];
+		iVars = [iVars arrayByAddingObjectsFromArray: class_copyIvarList([self class])];
+	}
+	return iVars;
+}
+
+- (JSObject)attributes
+{
+	objectName = [[self className] railsifiedString]
+	json = {};
+	json[objectName] = {};
+	temp = json[objectName];	
+	
+	names = [[self class] iVarList];
+	
+	
+	for(item in [[self class] iVarList])
+	{
+		varName = names[item].name;
+		if(varName != "CPArray")
+		{
+			temp[[varName railsifiedString]] = [self valueForKey:varName];
+		}
+	}
+	json[objectName] = temp;
+	
+	return json
+}
+
+
+
 - (CPArray)attributeNames
 {
     if ([classAttributeNames objectForKey:[self className]]) {
         return [classAttributeNames objectForKey:[self className]];
     }
+    var attributeNames = [CPArray array];
+	attributes = [CPArray array];
 
-    var attributeNames = [CPArray array],
-        attributes     = class_copyIvarList([self class]);
+
+/*       attributes     = class_copyIvarList([self class]);*/
+	attributes = [[self class] iVarList];
 
     for (var i = 0; i < attributes.length; i++) {
         [attributeNames addObject:attributes[i].name];
@@ -153,6 +195,8 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
 
     return attributeNames;
 }
+
+
 
 - (void)setAttributes:(JSObject)attributes
 {
@@ -191,7 +235,7 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
                             [self setValue:value forKey:attributeName];
                         }
                         break;
-					case "object":						
+					case "object":
 						if (value == null) 
 						{
 							[self setValue:nil forKey:attributeName];							
@@ -221,11 +265,26 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
 
 + (id)new:(JSObject)attributes
 {
-    var resource = [[self alloc] init];
-
+/*    var resource = [[self alloc] init];*/
+	
+	name = @"";
     if (!attributes)
-        attributes = {};
-
+	{
+	    attributes = {};
+		name = [self className];
+	}
+	else
+	{
+		for(a in attributes)
+		{
+			name = a;
+			break;
+		}
+		attributes = attributes[name];
+		name = [[name cappifiedString] capitalizedString];
+	}
+	var resource = [[objj_getClass(name) alloc] init];	
+	
     [resource setAttributes:attributes];
     return resource;
 }
@@ -492,12 +551,15 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
 			for (var i = 0; i < collection.length; i++) {
 	            var resource   = collection[i];
 	            var attributes = resource[[self railsName]];
-	            [resourceArray addObject:[self new:attributes]];
+	            //[resourceArray addObject:[self new:attributes]];
+				[resourceArray addObject:[self new:resource]];
+				//[resourceArray addObject:[[self alloc] initFromJSONObject:attributes]];
 	        }
 		}
 		else
 		{
 			[resourceArray addObject:[self new:collection]];
+			//[resourceArray addObject:[[self alloc] initFromJSONObject:attributes]];
 		}        
     }
 	[notificationInfo setRequestor:theRequestor];
@@ -505,6 +567,7 @@ CappuccinoRestfulResourceDidNotDestroy = @"CappuccinoRestfulResourceDidNotDestro
 	[notificationInfo setEventType:@"Load"];
 	[notificationInfo setEventData:resourceArray];
     [[CPNotificationCenter defaultCenter] postNotificationName:CappuccinoRestfulResourcesDidLoad object:self];
+
     return resourceArray;
 }
 
